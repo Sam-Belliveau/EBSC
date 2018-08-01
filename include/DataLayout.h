@@ -3,7 +3,6 @@
 
 #include "TypeNames.h"
 
-
 template<std::size_t size>
 class DataLayout
 {

@@ -12,30 +12,13 @@
 class Console
 {
 public: // Methods
-  void printWord(const WORD i)
-  { std::cout << static_cast<unsigned>(i); }
+  void printWord(const WORD i);
+  void printByte(const BYTE i);
+  void printChar(const BYTE i);
 
-  void printByte(const BYTE i)
-  { std::cout << static_cast<unsigned>(i); }
-
-  void printChar(const BYTE i)
-  { std::cout << static_cast<char>(i); }
-
-  BYTE getNum()
-  {
-    BYTE out; std::cin >> out;
-    std::cin.clear();
-    std::cin.ignore(0xffff, '\n');
-    return out;
-  }
-
-  BYTE getChar()
-  {
-    char out; std::cin >> out;
-    std::cin.clear();
-    std::cin.ignore(0xffff, '\n');
-    return static_cast<BYTE>(out);
-  }
+  WORD getWord();
+  BYTE getByte();
+  BYTE getChar();
 };
 
 #endif

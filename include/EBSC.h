@@ -9,8 +9,8 @@
 #include "InstructionSet.h"
 
 /*** Managers ***/
-#include "MemoryManagementUnit.h"
-#include "ProgramManagementUnit.h"
+#include "MMU.h"
+#include "PMU.h"
 
 #define TRUE 0x01
 #define FALSE 0x00
