@@ -4,486 +4,482 @@ void EBSC::runNextOPCODE()
 {
   const BYTE GROUP = PMU.getByte();
   const BYTE OPCODE = PMU.getByte();
+  BYTE b1, b2, b3, b4; // Byte Input Buffer
+  WORD w1, w2, w3, w4; // Word Input Buffer
 
-  if(GROUP == GP_PRGM)
+
+  switch (GROUP)
   {
-    if(OPCODE == OP_STOP)
-    { MMU.flags.setBit(0, false); }
 
-    else if(OPCODE == OP_SRPC)
+  /*** GROUP: Program Management ***/
+  case GP_PRGM:
+    switch (OPCODE)
     {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getWord(p1) = PMU.program_counter;
-    }
+    case OP_STOP:
+      MMU.flags.setBit(0, false);
+      break;
 
-    else if(OPCODE == OP_SPCR)
-    {
-      BYTE p1 = PMU.getByte();
-      PMU.program_counter = MMU.reg.getWord(p1);
-    }
+    case OP_SRPC:
+      b1 = PMU.getByte();
+      MMU.reg.getWord(b1) = PMU.program_counter;
+      break;
 
-    else if(OPCODE == OP_ISPR)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_SPCR:
+      b1 = PMU.getByte();
+      PMU.program_counter = MMU.reg.getWord(b1);
+      break;
 
-      if(MMU.reg.getByte(p1) != FALSE)
-      { PMU.program_counter = MMU.reg.getWord(p2); }
-    }
+    case OP_ISPR:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
 
-    else if(OPCODE == OP_PUPS)
-    { MMU.pushWord(PMU.program_counter); }
-    else if(OPCODE == OP_PUPS)
-    { PMU.program_counter = MMU.popWord(); }
+      if(MMU.reg.getByte(b1) != FALSE)
+      { PMU.program_counter = MMU.reg.getWord(b2); }
+      break;
 
-    else if(OPCODE == OP_IPPS)
-    {
-      BYTE p1 = PMU.getByte();
-      if(MMU.reg.getByte(p1) != 0)
+    case OP_PUPS:
+      MMU.pushWord(PMU.program_counter);
+      break;
+
+    case OP_POPS:
+     PMU.program_counter = MMU.popWord();
+     break;
+
+    case OP_IPPS:
+      b1 = PMU.getByte();
+      if(MMU.reg.getByte(b1) != 0)
       { PMU.program_counter = MMU.popWord(); }
-    }
+      break;
+
+    default:
+      MMU.flags.setBit(1, true);
+      break;
+    } break;
 
 
-    /*** Unknown OPCODE ***/
-    else{ MMU.flags.setBit(2, true); }
-  }
-
-  else if(GROUP == GP_STACK)
-  {
-    if(OPCODE == OP_STOP)
-    { MMU.flags.setBit(0, false); }
-
-    else if(OPCODE == OP_POPB)
+  /*** GROUP: Stack ***/
+  case GP_STACK:
+    switch(OPCODE)
     {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getByte(p1) = MMU.popByte();
-    }
+    case OP_POPB:
+      b1 = PMU.getByte();
+      MMU.reg.getByte(b1) = MMU.popByte();
+      break;
 
-    else if(OPCODE == OP_PUSB)
+    case OP_PUSB:
+      b1 = PMU.getByte();
+      MMU.pushByte(MMU.reg.getByte(b1));
+      break;
+
+    case OP_POPW:
+      b1 = PMU.getByte();
+      MMU.reg.getWord(b1) = MMU.popWord();
+      break;
+
+    case OP_PUSW:
+      b1 = PMU.getByte();
+      MMU.pushWord(MMU.reg.getWord(b1));
+      break;
+    } break;
+
+  /*** GROUP: Register Manipulation ***/
+  case GP_RGMP:
+    switch (OPCODE)
     {
-      BYTE p1 = PMU.getByte();
-      MMU.pushByte(MMU.reg.getByte(p1));
-    }
+    case OP_STBP:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
 
-    else if(OPCODE == OP_POPW)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getWord(p1) = MMU.popWord();
-    }
+      MMU.reg.getByte(b1) = b2;
+      break;
 
-    else if(OPCODE == OP_PUSW)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.pushWord(MMU.reg.getWord(p1));
-    }
+    case OP_STWP:
+      b1 = PMU.getByte();
+      w1 = PMU.getWord();
 
-    /*** Unknown OPCODE ***/
-    else{ MMU.flags.setBit(2, true); }
-  }
+      MMU.reg.getWord(b1) = w1;
+      break;
 
-  else if(GROUP == GP_RGMP)
-  {
-    if(OPCODE == OP_STBP)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_STBM:
+      b1 = PMU.getByte();
+      w1 = PMU.getWord();
 
-      MMU.reg.getByte(p1) = p2;
-    }
-    else if(OPCODE == OP_STWP)
-    {
-      BYTE p1 = PMU.getByte();
-      WORD p2 = PMU.getWord();
+      MMU.reg.getByte(b1) = MMU.mem.getByte(w1);
+      break;
 
-      MMU.reg.getWord(p1) = p2;
-    }
-    else if(OPCODE == OP_STBM)
-    {
-      BYTE p1 = PMU.getByte();
-      WORD p2 = PMU.getWord();
+    case OP_STWM:
+      b1 = PMU.getByte();
+      w1 = PMU.getWord();
 
-      MMU.reg.getByte(p1) = MMU.mem.getByte(p2);
-    }
-    else if(OPCODE == OP_STWM)
-    {
-      BYTE p1 = PMU.getByte();
-      WORD p2 = PMU.getWord();
+      MMU.reg.getByte(b1) = MMU.mem.getWord(w1);
+      break;
 
-      MMU.reg.getByte(p1) = MMU.mem.getWord(p2);
-    }
-    else if(OPCODE == OP_STBI)
-    {
-      BYTE p1 = PMU.getByte();
+    case OP_STBI:
+      b1 = PMU.getByte();
 
-      MMU.reg.getByte(p1) = MMU.mem.getByte(MMU.mp);
-    }
-    else if(OPCODE == OP_STWI)
-    {
-      BYTE p1 = PMU.getByte();
+      MMU.reg.getByte(b1) = MMU.mem.getByte(MMU.mp);
+      break;
 
-      MMU.reg.getWord(p1) = MMU.mem.getWord(MMU.mp);
-    }
-    else if(OPCODE == OP_STBB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_STWI:
+      b1 = PMU.getByte();
 
-      MMU.reg.getByte(p1) = MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_STWW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+      MMU.reg.getWord(b1) = MMU.mem.getWord(MMU.mp);
+      break;
 
-      MMU.reg.getWord(p1) = MMU.reg.getWord(p2);
-    }
+    case OP_STBB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) = MMU.reg.getByte(b2);
+      break;
+
+    case OP_STWW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getWord(b1) = MMU.reg.getWord(b2);
+      break;
 
     /*** 8-BIT MATH ***/
-    else if(OPCODE == OP_ILTB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_ILTB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) <
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IGTB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) <
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) >
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_ILEB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_IGTB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) <=
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IGEB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) >
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) >=
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IETB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_ILEB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) ==
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_INEB)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) <=
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getByte(p2) !=
-        MMU.reg.getByte(p3)) ? TRUE : FALSE;
-    }
+    case OP_IGEB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-    else if(OPCODE == OP_INCB)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getByte(p1)++;
-    }
-    else if(OPCODE == OP_DECB)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getByte(p1)--;
-    }
-    else if(OPCODE == OP_ADDB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) >=
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) += MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_SUBB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_IETB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) -= MMU.reg.getByte(p2);  }
-    else if(OPCODE == OP_MULB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) ==
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) *= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_DIVB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_INEB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) /= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_MODB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getByte(b2) !=
+        MMU.reg.getByte(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) %= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_ANDB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_INCB:
+      b1 = PMU.getByte();
+      MMU.reg.getByte(b1)++;
+      break;
 
-      MMU.reg.getByte(p1) &= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_IORB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_DECB:
+      b1 = PMU.getByte();
+      MMU.reg.getByte(b1)--;
+      break;
 
-      MMU.reg.getByte(p1) |= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_XORB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_ADDB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getByte(b1) += MMU.reg.getByte(b2);
+      break;
 
-      MMU.reg.getByte(p1) ^= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_LSHB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_SUBB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getByte(b1) -= MMU.reg.getByte(b2);
+      break;
 
-      MMU.reg.getByte(p1) <<= MMU.reg.getByte(p2);
-    }
-    else if(OPCODE == OP_RSHB)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_MULB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getByte(b1) *= MMU.reg.getByte(b2);
+      break;
 
-      MMU.reg.getByte(p1) >>= MMU.reg.getByte(p2);
-    }
+    case OP_DIVB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getByte(b1) /= MMU.reg.getByte(b2);
+      break;
+
+    case OP_MODB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getByte(b1) %= MMU.reg.getByte(b2);
+      break;
+
+    case OP_ANDB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) &= MMU.reg.getByte(b2);
+      break;
+
+    case OP_IORB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) |= MMU.reg.getByte(b2);
+      break;
+
+    case OP_XORB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) ^= MMU.reg.getByte(b2);
+      break;
+
+    case OP_LSHB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) <<= MMU.reg.getByte(b2);
+      break;
+
+    case OP_RSHB:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+
+      MMU.reg.getByte(b1) >>= MMU.reg.getByte(b2);
+      break;
 
     /*** 16-BIT MATH ***/
-    else if(OPCODE == OP_ILTW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_ILTW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) <
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IGTW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) <
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) >
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_ILEW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_IGTW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) <=
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IGEW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) >
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) >=
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_IETW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+    case OP_ILEW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) ==
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
-    else if(OPCODE == OP_INEW)
-    {
-      BYTE p1 = PMU.getByte(); // Ensure Order Of The Inputs
-      BYTE p2 = PMU.getByte();
-      BYTE p3 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) <=
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getByte(p1) =
-        (MMU.reg.getWord(p2) !=
-        MMU.reg.getWord(p3)) ? TRUE : FALSE;
-    }
+    case OP_IGEW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
 
-    else if(OPCODE == OP_INCW)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getWord(p1)++;
-    }
-    else if(OPCODE == OP_DECW)
-    {
-      BYTE p1 = PMU.getByte();
-      MMU.reg.getWord(p1)--; }
-    else if(OPCODE == OP_ADDW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) >=
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
 
-      MMU.reg.getWord(p1) += MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_SUBW)
+    case OP_IETW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
+
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) ==
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
+
+    case OP_INEW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      b3 = PMU.getByte();
+
+      MMU.reg.getByte(b1) =
+        (MMU.reg.getWord(b2) !=
+        MMU.reg.getWord(b3)) ? TRUE : FALSE;
+      break;
+
+    case OP_INCW:
+      b1 = PMU.getByte();
+      MMU.reg.getWord(b1)++;
+      break;
+
+    case OP_DECW:
+      b1 = PMU.getByte();
+      MMU.reg.getWord(b1)--;
+      break;
+
+    case OP_ADDW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) += MMU.reg.getWord(b2);
+      break;
+
+    case OP_SUBW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) -= MMU.reg.getWord(b2);
+      break;
+
+    case OP_MULW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) *= MMU.reg.getWord(b2);
+      break;
+
+    case OP_DIVW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) /= MMU.reg.getWord(b2);
+      break;
+
+    case OP_MODW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) %= MMU.reg.getWord(b2);
+      break;
+
+    case OP_ANDW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) &= MMU.reg.getWord(b2);
+      break;
+
+    case OP_IORW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) |= MMU.reg.getWord(b2);
+      break;
+
+    case OP_XORW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) ^= MMU.reg.getWord(b2);
+      break;
+
+    case OP_LSHW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) <<= MMU.reg.getWord(b2);
+      break;
+
+    case OP_RSHW:
+      b1 = PMU.getByte();
+      b2 = PMU.getByte();
+      MMU.reg.getWord(b1) >>= MMU.reg.getWord(b2);
+      break;
+
+    default:
+      MMU.flags.setBit(2, true);
+      break;
+    } break;
+
+  /*** GROUP: Print ***/
+  case GP_PRNT:
+    switch(OPCODE)
     {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTWP:
+      w1 = PMU.getWord();
+      terminal.printWord(w1);
+      break;
 
-      MMU.reg.getWord(p1) -= MMU.reg.getWord(p2);  }
-    else if(OPCODE == OP_MULW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTBP:
+      b1 = PMU.getByte();
+      terminal.printByte(b1);
+      break;
 
-      MMU.reg.getWord(p1) *= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_DIVW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTCP:
+      b1 = PMU.getByte();
+      terminal.printChar(b1);
+      break;
 
-      MMU.reg.getWord(p1) /= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_MODW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTWM:
+      w1 = PMU.getWord();
+      terminal.printWord(MMU.mem.getWord(w1));
+      break;
 
-      MMU.reg.getWord(p1) %= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_ANDW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTBM:
+      w1 = PMU.getWord();
+      terminal.printByte(MMU.mem.getByte(w1));
+      break;
 
-      MMU.reg.getWord(p1) &= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_IORW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTCM:
+      w1 = PMU.getWord();
+      terminal.printChar(MMU.mem.getByte(w1));
+      break;
 
-      MMU.reg.getWord(p1) |= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_XORW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTWI:
+      terminal.printWord(MMU.mem.getWord(MMU.mp));
+      break;
 
-      MMU.reg.getWord(p1) ^= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_LSHW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTBI:
+      terminal.printByte(MMU.mem.getByte(MMU.mp));
+      break;
 
-      MMU.reg.getWord(p1) <<= MMU.reg.getWord(p2);
-    }
-    else if(OPCODE == OP_RSHW)
-    {
-      BYTE p1 = PMU.getByte();
-      BYTE p2 = PMU.getByte();
+    case OP_PTCI:
+      terminal.printChar(MMU.mem.getByte(MMU.mp));
+      break;
 
-      MMU.reg.getWord(p1) >>= MMU.reg.getWord(p2);
-    }
+    case OP_PTWR:
+      b1 = PMU.getByte();
+      terminal.printWord(MMU.reg.getWord(b1));
+      break;
 
-    /*** Unknown OPCODE ***/
-    else{ MMU.flags.setBit(2, true); }
+    case OP_PTBR:
+      b1 = PMU.getByte();
+      terminal.printByte(MMU.reg.getByte(b1));
+      break;
+
+    case OP_PTCR:
+      b1 = PMU.getByte();
+      terminal.printChar(MMU.reg.getByte(b1));
+      break;
+
+    default:
+      MMU.flags.setBit(2, true);
+      break;
+    } break;
+
+  default:
+    MMU.flags.setBit(1, true);
+    break;
   }
-
-  else if(GROUP == GP_PRNT)
-  {
-    if(OPCODE == OP_PTWP)
-    {
-      WORD p1 = PMU.getWord();
-      terminal.printWord(p1);
-    }
-    else if(OPCODE == OP_PTBP)
-    {
-      BYTE p1 = PMU.getByte();
-      terminal.printByte(p1);
-    }
-    else if(OPCODE == OP_PTCP)
-    {
-      BYTE p1 = PMU.getByte();
-      terminal.printChar(p1);
-    }
-
-    else if(OPCODE == OP_PTWM)
-    {
-      WORD p1 = PMU.getWord();
-      terminal.printWord(MMU.mem.getWord(p1));
-    }
-    else if(OPCODE == OP_PTBM)
-    {
-      WORD p1 = PMU.getWord();
-      terminal.printByte(MMU.mem.getByte(p1)); }
-    else if(OPCODE == OP_PTCM)
-    {
-      WORD p1 = PMU.getWord();
-      terminal.printChar(MMU.mem.getByte(p1));
-    }
-
-    else if(OPCODE == OP_PTWI)
-    { terminal.printWord(MMU.mem.getWord(MMU.mp)); }
-    else if(OPCODE == OP_PTBI)
-    { terminal.printByte(MMU.mem.getByte(MMU.mp)); }
-    else if(OPCODE == OP_PTCI)
-    { terminal.printChar(MMU.mem.getByte(MMU.mp)); }
-
-    else if(OPCODE == OP_PTWR)
-    {
-      BYTE p1 = PMU.getByte();
-      terminal.printWord(MMU.reg.getWord(p1)); }
-    else if(OPCODE == OP_PTBR)
-    {
-      BYTE p1 = PMU.getByte();
-      terminal.printByte(MMU.reg.getByte(p1));
-    }
-    else if(OPCODE == OP_PTCR)
-    {
-      BYTE p1 = PMU.getByte();
-      terminal.printChar(MMU.reg.getByte(p1));
-    }
-
-    /*** Unknown OPCODE ***/
-    else{ MMU.flags.setBit(2, true); }
-  }
-
-  /*** Unknown GROUP ***/
-  else{ MMU.flags.setBit(1, true); }
 }
